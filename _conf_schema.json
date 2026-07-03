@@ -1,0 +1,39 @@
+{
+    "official_bot_id": {
+        "description": "官方机器人 ID，用于识别验证码消息来源",
+        "type": "string",
+        "default": "3889001741",
+        "hint": "填写需要自动点击验证码的官方 QQ 机器人 ID"
+    },
+    "vision_api_key": {
+        "description": "视觉模型 API Key",
+        "type": "string",
+        "default": "",
+        "hint": "填写支持视觉识别的 API Key（如豆包、OpenAI 等兼容接口）",
+        "obvious_hint": true
+    },
+    "vision_base_url": {
+        "description": "视觉模型 API Base URL",
+        "type": "string",
+        "default": "https://ark.cn-beijing.volces.com/api/v3",
+        "hint": "视觉模型的 API 基础地址，支持 OpenAI 兼容接口"
+    },
+    "vision_model": {
+        "description": "视觉模型名称",
+        "type": "string",
+        "default": "",
+        "hint": "填写视觉模型的模型 ID 或 endpoint ID（如豆包的 ep-xxxxx）"
+    },
+    "debug_print": {
+        "description": "启用调试日志",
+        "type": "bool",
+        "default": true,
+        "hint": "开启后会在控制台输出详细的识别过程日志"
+    },
+    "stop_after_handle": {
+        "description": "处理后阻止事件继续传播",
+        "type": "bool",
+        "default": true,
+        "hint": "开启后，验证码消息处理完毕将阻止其他插件继续处理该消息"
+    }
+}
