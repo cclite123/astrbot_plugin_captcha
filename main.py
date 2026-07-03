@@ -8,7 +8,9 @@ astrbot_plugin_captcha - 验证码自动识别与点击插件
 适用于 AstrBot 框架，遵循 AstrBot 插件开发规范。
 """
 
+import os
 import re
+import json
 import time
 import traceback
 from typing import Optional
@@ -69,15 +71,26 @@ class CaptchaPlugin(Star):
     # 匹配验证码题目中的目标编号
     _TARGET_NUM_PATTERN = re.compile(r"第(\d+)个表情")
 
-    def __init__(self, context: Context, config: AstrBotConfig):
+    # 默认配置
+    _DEFAULT_CONFIG = {
+        "official_bot_id": "3889001741",
+        "vision_api_key": "",
+        "vision_base_url": "https://ark.cn-beijing.volces.com/api/v3",
+        "vision_model": "",
+        "debug_print": True,
+        "stop_after_handle": True,
+    }
+
+    def __init__(self, context: Context, config: AstrBotConfig = None):
         """初始化插件，加载配置并创建视觉模型客户端。
 
         Args:
             context: AstrBot 插件上下文。
             config: AstrBot 管理的插件配置（由 _conf_schema.json 驱动）。
+                    未传入时回退到本地 config.json 文件。
         """
         super().__init__(context)
-        self.cfg = config
+        self.cfg = self._load_config(config)
 
         # 初始化视觉模型客户端
         self.vision_client = AsyncOpenAI(
@@ -90,6 +103,41 @@ class CaptchaPlugin(Star):
         _console("BOOT", f"视觉模型    : {self.cfg.get('vision_model') or '未配置'}")
         _console("BOOT", f"调试日志    : {'开启' if self.cfg.get('debug_print') else '关闭'}")
         _console("BOOT", "========================================")
+
+    def _load_config(self, config: AstrBotConfig = None) -> dict:
+        """加载插件配置。
+
+        优先使用 AstrBot 传入的 config（WebUI 管理），
+        若未传入则回退到插件目录下的 config.json 文件。
+
+        Args:
+            config: AstrBot 管理的配置对象，可能为 None。
+
+        Returns:
+            合并后的配置字典。
+        """
+        cfg = dict(self._DEFAULT_CONFIG)
+
+        # 优先使用 AstrBot 传入的配置
+        if config is not None:
+            try:
+                cfg.update(config)
+                _console("CONFIG", "已加载 AstrBot WebUI 配置。")
+                return cfg
+            except Exception as e:
+                _console("CONFIG", f"读取 AstrBot 配置失败: {e}", level="error")
+
+        # 回退：从本地 config.json 加载
+        config_path = os.path.join(os.path.dirname(__file__), "config.json")
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, "r", encoding="utf-8") as f:
+                    cfg.update(json.load(f))
+                _console("CONFIG", f"已加载本地配置: {config_path}")
+        except Exception as e:
+            _console("CONFIG", f"加载本地配置失败: {e}", level="error")
+
+        return cfg
 
     # ------------------------------------------------------------------
     # 内部工具方法
