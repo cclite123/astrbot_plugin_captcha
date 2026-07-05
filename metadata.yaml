@@ -4,7 +4,7 @@ description: 自动识别并点击 QQ 群聊中的机器人验证码，支持视
 short_desc: 自动识别并点击 QQ 群聊验证码
 version: "1.0.0"
 author: 时光
-repo: ""
+repo: "https://github.com/cclite123/astrbot_plugin_captcha.git"
 astrbot_version: ">=4.0.0"
 support_platforms:
   - aiocqhttp

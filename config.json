@@ -1,5 +1,13 @@
 {
     "official_bot_id": "3889001741",
+    "vision_api_key": "",
+    "vision_base_url": "https://ark.cn-beijing.volces.com/api/v3",
+    "vision_model": "",
+    "debug_print": true,
+    "stop_after_handle": true
+}
+{
+    "official_bot_id": "3889001741",
     "vision_api_key": "ark-f85c9cda-8a7b-4a62-b063-9f59438f2d93-7d696",
     "vision_base_url": "https://ark.cn-beijing.volces.com/api/v3",
     "vision_model": "ep-20260622135137-vcvv5",
