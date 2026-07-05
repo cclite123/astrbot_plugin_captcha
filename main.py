@@ -28,13 +28,13 @@ def _console(tag: str, msg: str, level: str = "info") -> None:
         log_func(line)
     except Exception:
         pass
-    print(line, flush=True)
 
 
+# 注意：元数据以 metadata.yaml 为准，此处的 @register 仅用于类注册
 @register(
     "astrbot_plugin_captcha",
     "时光",
-    "验证码自动识别与点击：自动识别 QQ 群聊中的干扰验证码图片并模拟点击对应按钮",
+    "验证码自动识别与点击",
     "1.0.0",
     "",
 )
@@ -272,7 +272,12 @@ class CaptchaPlugin(Star):
 
     @staticmethod
     def _match_button(ai_answer: str, buttons_data: list) -> dict:
-        """将视觉模型答案与按钮选项匹配，未命中时兜底选第一个。"""
+        """将视觉模型答案与按钮选项匹配，优先精确匹配，其次子串匹配，未命中兜底选第一个。"""
+        # 优先精确匹配
+        for b in buttons_data:
+            if b["label"] and b["label"] == ai_answer:
+                return b
+        # 其次子串匹配
         matched = next(
             (b for b in buttons_data
              if b["label"] and (b["label"] in ai_answer or ai_answer in b["label"])),
@@ -290,7 +295,10 @@ class CaptchaPlugin(Star):
             _console("CLICK", "未获取到 OneBot 底层 client，无法执行点击操作。", level="error")
             return
 
-        group_id = str(event.get_group_id())
+        group_id = str(event.get_group_id() or "")
+        if not group_id:
+            _console("CLICK", "无法获取群 ID，跳过点击操作。", level="error")
+            return
         payload = {
             "group_id": group_id,
             "bot_appid": bot_appid,
