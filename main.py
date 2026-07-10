@@ -35,7 +35,7 @@ def _console(tag: str, msg: str, level: str = "info") -> None:
     "astrbot_plugin_captcha",
     "时光",
     "验证码自动识别与点击",
-    "1.0.0",
+    "1.0.1",
     "",
 )
 class CaptchaPlugin(Star):
@@ -211,30 +211,91 @@ class CaptchaPlugin(Star):
 
     def _parse_keyboard_data(self, event: AstrMessageEvent):
         """从原始消息数据中解析内联键盘按钮信息，返回 (msg_seq, bot_appid, buttons_data)。"""
-        raw_event = getattr(event.message_obj, "raw_message", {}) or {}
-        if not isinstance(raw_event, dict):
-            raw_event = getattr(raw_event, "__dict__", {}) or {}
-        raw_dict = raw_event.get("raw", {}) or {}
+        # AstrBot/aiocqhttp 不同版本对 raw_message 的包装层级不同：有的为
+        # {raw: {...}}，有的直接暴露原始包，还有的将节点转换成对象。
+        # 不再依赖固定路径，而是在整棵原始消息树中查找相关字段。
+        root = getattr(event.message_obj, "raw_message", None)
+        if root is None:
+            root = getattr(event.message_obj, "raw", None)
+        if root is None:
+            root = event.message_obj
 
-        msg_seq = str(raw_dict.get("msgSeq", ""))
+        def as_mapping(value):
+            if isinstance(value, dict):
+                return value
+            try:
+                return vars(value)
+            except (TypeError, AttributeError):
+                return None
+
+        def walk(value, seen=None):
+            if seen is None:
+                seen = set()
+            if id(value) in seen:
+                return
+            seen.add(id(value))
+            mapping = as_mapping(value)
+            if mapping is not None:
+                yield mapping
+                for child in mapping.values():
+                    yield from walk(child, seen)
+            elif isinstance(value, (list, tuple)):
+                for child in value:
+                    yield from walk(child, seen)
+
+        def first(mapping, *names):
+            for name in names:
+                value = mapping.get(name)
+                if value is not None and value != "":
+                    return value
+            return ""
+
+        nodes = list(walk(root))
+        msg_seq = ""
         bot_appid = ""
         buttons_data = []
+        seen_buttons = set()
 
-        for el in raw_dict.get("elements", []):
-            if not isinstance(el, dict):
-                continue
-            keyboard = el.get("inlineKeyboardElement")
-            if not keyboard:
-                continue
-            bot_appid = str(keyboard.get("botAppid", ""))
-            for row in keyboard.get("rows", []):
-                for btn in row.get("buttons", []):
-                    buttons_data.append({
-                        "label": btn.get("label", ""),
-                        "button_id": str(btn.get("id", "")),
-                        "callback_data": str(btn.get("data", "")),
-                    })
+        for node in nodes:
+            if not msg_seq:
+                msg_seq = str(first(node, "msgSeq", "msg_seq", "message_seq") or "")
+            if not bot_appid:
+                bot_appid = str(first(node, "botAppid", "bot_appid") or "")
 
+            # 按钮节点在 QQ 原始包中通常同时包含 label/id/data；兼容
+            # snake_case 和部分实现使用的 callback_data/button_id。
+            label = first(node, "label", "text", "name")
+            button_id = first(node, "id", "buttonId", "button_id")
+            callback_data = first(node, "data", "callbackData", "callback_data")
+            if not label or (not button_id and not callback_data):
+                continue
+            key = (str(label), str(button_id), str(callback_data))
+            if key in seen_buttons:
+                continue
+            seen_buttons.add(key)
+            buttons_data.append({
+                "label": str(label),
+                "button_id": str(button_id),
+                "callback_data": str(callback_data),
+            })
+
+        if not (buttons_data and msg_seq and bot_appid):
+            top = as_mapping(root) or {}
+            raw_attached = "raw" in top
+            self._dbg(
+                "RAW",
+                f"键盘字段解析不完整；raw_type={type(root).__name__}, "
+                f"raw_attached={raw_attached}, top_keys={list(top.keys())[:20]}, "
+                f"scanned_nodes={len(nodes)}",
+            )
+            if not raw_attached:
+                _console(
+                    "RAW",
+                    "NapCat 未在 OneBot 事件中附加原始消息。请在 NapCat WebUI 的网络配置中，"
+                    "为 AstrBot 使用的 WebSocket/反向 WebSocket 连接开启 debug，然后重启或重载连接；"
+                    "否则 OneBot 转换会丢弃官方 Bot 的内联键盘，插件无法取得按钮参数。",
+                    level="error",
+                )
         return msg_seq, bot_appid, buttons_data
 
     async def _call_vision_model(self, img_url: str, target_num: int, labels: list) -> Optional[str]:

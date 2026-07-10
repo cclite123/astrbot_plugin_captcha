@@ -79,9 +79,19 @@ pip install -r requirements.txt
 | 平台适配器 | 支持状态 |
 |---|---|
 | aiocqhttp (OneBot v11) | ✅ 支持 |
-| qq_official | ✅ 支持 |
 
 > **注意：** 按钮点击功能依赖 OneBot 协议的 `click_inline_keyboard_button` 扩展 API，请确保所使用的协议实现支持该接口。
+
+### NapCat 必需配置
+
+使用 NapCatQQ 时，请在 **NapCat WebUI → 网络配置** 中，编辑 AstrBot 实际连接的
+WebSocket 或反向 WebSocket 配置并开启 `debug`，然后重启或重载该连接。
+
+NapCat 仅在网络连接的 `debug` 开启时，才会在 OneBot 上报中附加包含
+`inlineKeyboardElement` 的原始消息。未开启时，标准 OneBot 消息转换会丢弃官方 Bot
+的键盘按钮，插件将只能取得验证码文字和图片，无法取得点击所需的 `bot_appid`、
+`button_id` 与 `callback_data`。这里的 NapCat 网络 `debug` 与插件配置中的
+`debug_print` 是两个不同的开关。
 
 ## 依赖项
 

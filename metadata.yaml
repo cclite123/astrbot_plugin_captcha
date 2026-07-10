@@ -2,10 +2,9 @@ name: astrbot_plugin_captcha
 display_name: 验证码克星
 description: 自动识别并点击 QQ 群聊中的机器人验证码，支持视觉模型识别干扰验证码图片。
 short_desc: 自动识别并点击 QQ 群聊验证码
-version: "1.0.0"
+version: "1.0.1"
 author: 时光
 repo: "https://github.com/cclite123/astrbot_plugin_captcha.git"
 astrbot_version: ">=4.0.0"
 support_platforms:
   - aiocqhttp
-  - qq_official
